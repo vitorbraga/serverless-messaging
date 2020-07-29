@@ -15,6 +15,20 @@ The pipeline creates a second stack that contains your application's resources, 
 
 For a full list of possible operations, see the [AWS Lambda Applications documentation](https://docs.aws.amazon.com/lambda/latest/dg/deploying-lambda-apps.html).
 
+## Try the endpoints:
+```
+Posting a new message:
+curl -X POST https://eqhkyapga8.execute-api.us-east-2.amazonaws.com/prod/messages/
+	 -H "Content-Type: application/json" 
+     -H "Accept: application/json" 
+     -d "{\"title\":\"Title Example 1\",\"description\":\"Description example 1\",\"username\":\"username1\" }"
+```
+
+```
+Getting messages from a user:
+curl https://eqhkyapga8.execute-api.us-east-2.amazonaws.com/prod/messages/user/username1
+```
+
 ## Try the application out
 
 1. Go to the Lambda console.
