@@ -1,5 +1,5 @@
 {
-    "name": "serverless-messages2-cdk",
+    "name": "serverless-messaging-cdk",
     "version": "0.0.1",
     "bin": {
         "cdk": "bin/cdk.js"
