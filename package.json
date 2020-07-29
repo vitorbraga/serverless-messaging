@@ -1,14 +1,32 @@
 {
-    "name": "serverless-messaging",
+    "name": "serverless-messages2",
     "description": "",
     "version": "0.0.1",
     "private": true,
     "dependencies": {
+        "aws-sdk": "^2.660.0",
+        "uuid": "^8.3.0"
     },
     "devDependencies": {
-        "jest": "^25.4.0"
+        "@types/aws-lambda": "^8.10.59",
+        "@types/node": "^13.13.5",
+        "@types/uuid": "^8.0.0",
+        "@typescript-eslint/eslint-plugin": "^2.24.0",
+        "@typescript-eslint/parser": "^2.24.0",
+        "chai": "^4.2.0",
+        "eslint": "^6.7.1",
+        "eslint-config-standard": "^14.1.0",
+        "eslint-plugin-import": "^2.18.2",
+        "eslint-plugin-node": "^10.0.0",
+        "eslint-plugin-prefer-arrow": "^1.1.6",
+        "eslint-plugin-promise": "^4.2.1",
+        "eslint-plugin-standard": "^4.0.1",
+        "jest": "^25.4.0",
+        "ts-node": "^8.9.0",
+        "typescript": "^3.8.3"
     },
     "scripts": {
-        "test": "jest"
+        "test": "jest",
+        "build": "tsc"
     }
 }
