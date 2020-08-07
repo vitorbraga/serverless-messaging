@@ -1,7 +1,16 @@
 import dynamodb from 'aws-sdk/clients/dynamodb';
 import Sns from 'aws-sdk/clients/sns';
 import * as uuid from 'uuid';
-import { APIGatewayProxyHandler, APIGatewayProxyEvent } from 'aws-lambda';
+import { APIGatewayProxyEvent } from 'aws-lambda';
+import { Message, NewMessageRequestBody } from './model';
+
+function isNewMessageRequestBody(parsedBody: NewMessageRequestBody): parsedBody is NewMessageRequestBody {
+    if (parsedBody.title && parsedBody.description && parsedBody.username) {
+        return true;
+    }
+
+    return false;
+}
 
 function validateInput(parsedBody: {[key: string]: string }): string | undefined {
     if (!parsedBody.username) {
@@ -19,12 +28,47 @@ function validateInput(parsedBody: {[key: string]: string }): string | undefined
     return undefined;
 }
 
-export const postMessageHandler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent) => {
-    const { body, httpMethod, path } = event;
-    const docClient = new dynamodb.DocumentClient();
+function createMessage({ title, description, username }: NewMessageRequestBody): Message {
+    const newUuid = uuid.v4();
+    const createdAt = Date.now();
 
+    const message: Message = {
+        uuid: newUuid,
+        title,
+        description,
+        username,
+        createdAt
+    };
+
+    return message;
+}
+
+async function insertMessageToDB(message: Message) {
+    const docClient = new dynamodb.DocumentClient();
     const tableName = process.env.DYNAMODB_MESSAGES_TABLE || 'MessagesTable';
+
+    const dynamoParams = {
+        TableName: tableName,
+        Item: message
+    };
+
+    await docClient.put(dynamoParams).promise();
+}
+
+async function publishMessageToTopic(message: Message) {
     const topicArn = process.env.SNS_MESSAGE_TOPIC_ARN;
+
+    const snsParams = {
+        Message: JSON.stringify(message),
+        TopicArn: topicArn || 'SNS_MESSAGES'
+    };
+
+    const snsClient = new Sns();
+    await snsClient.publish(snsParams).promise();
+}
+
+export async function postMessageHandler(event: APIGatewayProxyEvent) {
+    const { body, httpMethod, path } = event;
 
     if (httpMethod !== 'POST') {
         return {
@@ -42,9 +86,8 @@ export const postMessageHandler: APIGatewayProxyHandler = async (event: APIGatew
 
     const parsedBody = JSON.parse(body);
 
-    // Making a simple validation
-    const validationResult = validateInput(parsedBody);
-    if (validationResult) {
+    if (!isNewMessageRequestBody(parsedBody)) {
+        const validationResult = validateInput(parsedBody);
         return {
             statusCode: 422,
             body: JSON.stringify({ success: false, message: `Invalid field: ${validationResult}` })
@@ -52,32 +95,12 @@ export const postMessageHandler: APIGatewayProxyHandler = async (event: APIGatew
     }
 
     try {
-        // Create uuid for the new message
-        const newUuid = uuid.v4();
-        const createdAt = Date.now();
+        const newMessage = createMessage(parsedBody);
 
-        // Will post a new message to DynamoDB
-        const dynamoParams = {
-            TableName: tableName,
-            Item: {
-                uuid: newUuid,
-                title: parsedBody.title,
-                description: parsedBody.description,
-                username: parsedBody.username,
-                createdAt
-            }
-        };
-        await docClient.put(dynamoParams).promise();
+        await insertMessageToDB(newMessage);
 
-        // Will publish a new message to SNS topic
-        const snsParams = {
-            Message: JSON.stringify(dynamoParams.Item),
-            TopicArn: topicArn || 'SNS_MESSAGES'
-        };
-        const snsClient = new Sns();
-        await snsClient.publish(snsParams).promise();
+        await publishMessageToTopic(newMessage);
 
-        // Everything went well, will send the success response to the user
         const response = {
             statusCode: 200,
             body: JSON.stringify({ success: true, message: 'Message posted sucessfully.' })

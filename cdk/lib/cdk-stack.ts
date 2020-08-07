@@ -69,6 +69,7 @@ export class CdkStack extends Stack {
         messagesResource
             .addResource('user')
             .addResource('{username}')
+            .addResource('messages')
             .addMethod('GET', new apigateway.LambdaIntegration(getMessagesFromUserFunction));
     }
 }
